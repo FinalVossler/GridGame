@@ -4,8 +4,13 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 const deps = require("./package.json").dependencies;
 module.exports = (_, argv) => ({
+  entry: {
+    app: "./src/index.ts",
+  },
   output: {
-    publicPath: "http://localhost:3000/",
+    path: path.join(__dirname, "dist"),
+    filename: "[name].js",
+    publicPath: argv.mode === "development" ? "http://localhost:3000/" : "/",
   },
 
   resolve: {
