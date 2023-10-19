@@ -197,7 +197,7 @@ const App = () => {
                 hair +
                 ".png"
               : "",
-          hand: "/assets/images/orc/hand/skintone_" + skin + ".png",
+          hand: "/assets/images/orc/hand/skintone_1.png",
 
           head: "/assets/images/orc/head/skin 1/head_" + head + ".png",
           metalHat: "",
