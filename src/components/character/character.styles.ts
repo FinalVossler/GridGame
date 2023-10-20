@@ -17,16 +17,16 @@ const useStyles = createUseStyles((theme: IBoardStylesParams) => ({
     extend: "character",
 
     background: "linear-gradient(to right, red, lightblue)",
-    width: 80,
+    width: 60,
     borderRadius: "50%",
-    height: 80,
+    height: 60,
   },
 
   healthBar: {
     position: "absolute",
-    top: -15,
+    top: -10,
     width: "120%",
-    height: 8,
+    height: 5,
     left: "-10%",
     backgroundColor: "red",
     borderRadius: 10,

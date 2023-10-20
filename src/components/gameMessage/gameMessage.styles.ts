@@ -7,7 +7,7 @@ interface IBoardStylesParams {
 
 const useStyles = createUseStyles((theme: IBoardStylesParams) => ({
   gameMessage: {
-    fontSize: 40,
+    fontSize: 30,
     color: "white",
     position: "absolute",
     top: 100,
@@ -15,7 +15,7 @@ const useStyles = createUseStyles((theme: IBoardStylesParams) => ({
     transform: "translate(-50%, -50%)",
     backgroundColor: "red",
     borderRadius: 10,
-    padding: 20,
+    padding: 15,
     zIndex: 12,
   },
 }));

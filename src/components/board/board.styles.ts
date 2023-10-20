@@ -18,8 +18,8 @@ const useStyles = createUseStyles((theme: IBoardStylesParams) => ({
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
-    width: 80,
-    height: 80,
+    width: 65,
+    height: 65,
   },
   highlightedGrid: {
     extend: "grid",
