@@ -72,6 +72,14 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
       characterInPosition: IGameCharacter | undefined;
     }) =>
     () => {
+      // if it's not a selected character turn, and we click on an empty grid, then we show an error message
+      if (
+        game.clickedCharacter &&
+        !characterInPosition &&
+        game.whichSpeciesTurn !== game.clickedCharacter.species
+      ) {
+        dispatch(gameSlice.actions.setMessage("Not the team's turn!"));
+      }
       // If we have a character in action, then we need to prioritize him
       if (game.characterInAction) {
         // During action, we have 3 possibilities: (1) clicking on oneself (2) clicking on an empty accessible case
@@ -130,9 +138,6 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
             );
           } else {
             // We inflict damage in case the enemy isn't dead yet.
-            console.log("clicked enemy pos", clickedEnemy.position);
-
-            console.log("damage", damage);
             (clickedEnemy?.species === TeamEnum.B ? setTeamB : setTeamA)(
               (clickedEnemy?.species === TeamEnum.B ? teamB : teamA).map(
                 (character) => ({

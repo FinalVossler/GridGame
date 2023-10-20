@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
+import AudioPlayer from "react-h5-audio-player";
 
 import Board from "./components/board/Board";
 import TeamEnum from "./globalTypes/TeamEnum";
@@ -214,6 +215,7 @@ const App = () => {
         <GameInfo />
         <Board rows={10} columns={6} teamA={teamA} teamB={teamB} />
         <GameMessage />
+        <AudioPlayer autoPlay src="/music.mp3" loop />
       </div>
     </Provider>
   );

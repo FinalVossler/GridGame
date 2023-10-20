@@ -16,7 +16,7 @@ const useStyles = createUseStyles((theme: IBoardStylesParams) => ({
     backgroundColor: "red",
     borderRadius: 10,
     padding: 20,
-    zIndex: 10,
+    zIndex: 12,
   },
 }));
 
