@@ -30,24 +30,25 @@ const getAiCharacterTurnActions = (
     }).reduce((positions: IPosition[], path) => {
       return positions.concat(path);
     })
-  );
+  ).filter((accessibleGrid) => {
+    // The accessible grids are those that aren't occupied by another team member
+    return !params.teamB
+      .filter(
+        // We first filter out the current character from the list of team members, because the current character's position is still accessible
+        (el) =>
+          el.position.column !== character.position.column ||
+          el.position.row !== character.position.row
+      )
+      .find(
+        (teamMember) =>
+          teamMember.position.column === accessibleGrid.column &&
+          teamMember.position.row === accessibleGrid.row
+      );
+  });
 
   accessibleMovementGrids.every((grid) => {
     if (attackTarget) {
       return false;
-    }
-
-    // If this grid is already occupied by a team mate that's not ourselves, then we ignore it
-    if (
-      params.teamB.find(
-        (el) =>
-          el.position.column === grid.column &&
-          el.position.row === grid.row &&
-          (el.position.column !== character.position.column ||
-            el.position.row !== character.position.row)
-      )
-    ) {
-      return true;
     }
 
     const accessibleAttackGrids = getAdjacentCases({
