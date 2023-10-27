@@ -148,7 +148,7 @@ const App = () => {
 
   const teamB: ICharacter[] = React.useMemo(
     () =>
-      Array.from({ length: 5 }).map((_, i) => {
+      Array.from({ length: 12 }).map((_, i) => {
         const weaponType =
           Object.keys(MELEE_WEAPON_TYPES)[
             getRandom(Object.keys(MELEE_WEAPON_TYPES).length - 1)
