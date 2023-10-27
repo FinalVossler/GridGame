@@ -42,9 +42,11 @@ export const getRandom = (a: number) => Math.floor(Math.random() * a) + 1;
 const App = () => {
   const styles = useStyles();
 
+  const numberOfFighters = Math.floor(Math.random() * 12) + 1;
+
   const teamA: ICharacter[] = React.useMemo(
     () =>
-      Array.from({ length: 12 }).map((_, i) => {
+      Array.from({ length: numberOfFighters }).map((_, i) => {
         const weaponType =
           Object.keys(MELEE_WEAPON_TYPES)[
             getRandom(Object.keys(MELEE_WEAPON_TYPES).length - 1)
@@ -148,7 +150,7 @@ const App = () => {
 
   const teamB: ICharacter[] = React.useMemo(
     () =>
-      Array.from({ length: 12 }).map((_, i) => {
+      Array.from({ length: numberOfFighters }).map((_, i) => {
         const weaponType =
           Object.keys(MELEE_WEAPON_TYPES)[
             getRandom(Object.keys(MELEE_WEAPON_TYPES).length - 1)

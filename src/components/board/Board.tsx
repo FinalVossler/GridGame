@@ -61,6 +61,7 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
     }
   }, [game.whichSpeciesTurn]);
 
+  // Initializing teams
   React.useEffect(() => {
     setTeamA([
       ...props.teamA.map((teamBMember, i) => ({
@@ -93,6 +94,10 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
 
   // AI turn
   React.useEffect(() => {
+    if (teamA.length === 0 || teamB.length === 0) {
+      return;
+    }
+
     // Executing current ai character actions
     if (aiActions.chainOfPositionsToClick.length > 0) {
       const newChainOfPositionsToClick = [...aiActions.chainOfPositionsToClick];
