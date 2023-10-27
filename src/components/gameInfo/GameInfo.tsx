@@ -4,8 +4,6 @@ import useStyles from "./gameInfo.styles";
 import TeamEnum from "../../globalTypes/TeamEnum";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { gameSlice } from "../../store/slices/gameSlice";
-import AnimatedObject from "../animatedObject/AnimatedObject";
-import AnimatedCharacter from "../animatedCharacter/AnimatedCharacter";
 
 interface IGameInfo {}
 const GameInfo: React.FunctionComponent<IGameInfo> = (props: IGameInfo) => {
@@ -85,7 +83,11 @@ const GameInfo: React.FunctionComponent<IGameInfo> = (props: IGameInfo) => {
         </div>
       )}
 
-      <button onClick={handlePassTurn} className={styles.passTurnButton}>
+      <button
+        disabled={game.whichSpeciesTurn === TeamEnum.B}
+        onClick={handlePassTurn}
+        className={styles.passTurnButton}
+      >
         Pass Turn
       </button>
     </div>

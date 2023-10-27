@@ -148,7 +148,7 @@ const App = () => {
 
   const teamB: ICharacter[] = React.useMemo(
     () =>
-      Array.from({ length: 12 }).map((_) => {
+      Array.from({ length: 5 }).map((_, i) => {
         const weaponType =
           Object.keys(MELEE_WEAPON_TYPES)[
             getRandom(Object.keys(MELEE_WEAPON_TYPES).length - 1)
@@ -163,7 +163,7 @@ const App = () => {
         const head = Math.ceil(Math.random() * NUMBER_OF_HAIRS);
 
         return {
-          name: "Orc",
+          name: "Orc" + i,
           movement: getRandom(4) + 1,
           attack: getRandom(5) + 1,
           defense: getRandom(7) + 1,
@@ -215,7 +215,7 @@ const App = () => {
         <GameInfo />
         <Board rows={10} columns={6} teamA={teamA} teamB={teamB} />
         <GameMessage />
-        <AudioPlayer autoPlay src="/music.mp3" loop />
+        {/* <AudioPlayer autoPlay src="/music.mp3" loop /> */}
         {/* <audio loop src="/music.mp3" autoPlay /> */}
       </div>
     </Provider>

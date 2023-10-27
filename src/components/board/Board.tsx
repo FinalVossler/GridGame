@@ -4,11 +4,14 @@ import useStyles from "./board.styles";
 import ICharacter, { IGameCharacter } from "../../globalTypes/ICharacter";
 import TeamEnum from "../../globalTypes/TeamEnum";
 import IPosition from "../../globalTypes/IPosition";
-import getPossiblePaths from "../../utils/getPossiblePaths";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { gameSlice } from "../../store/slices/gameSlice";
 import getAdjacentCases from "../../utils/getAdjacentCases";
 import Character from "../character/Character";
+import getAiCharacterTurnActions from "../../utils/getAiCharacterTurnActions";
+import _ from "lodash";
+import getCasesAllowedToMoveTo from "../../utils/getCasesAllowedToMoveTo";
+import doNothing from "../../utils/doNothing";
 
 interface IBoard {
   teamA: ICharacter[];
@@ -17,17 +20,29 @@ interface IBoard {
   columns: number;
 }
 const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
+  //#region central state
   const game = useAppSelector((state) => state.game);
+  //#endregion central state
 
+  //#region local state
   const [teamA, setTeamA] = React.useState<IGameCharacter[]>([]);
   const [teamB, setTeamB] = React.useState<IGameCharacter[]>([]);
+  const [aiActions, setAiActions] = React.useState<{
+    aiCharactersToAct: IGameCharacter[];
+    chainOfPositionsToClick: IPosition[];
+  }>({ aiCharactersToAct: [], chainOfPositionsToClick: [] });
+  //#endregion local state
 
   const styles = useStyles({
     theme: { columns: props.columns, rows: props.rows },
   });
   const dispatch = useAppDispatch();
+  // This ref is used to keep track of the last changes of Ai characters' positions during the AI turn.
+  const teamBForAi = React.useRef<IGameCharacter[]>([]);
 
+  //#region hooks
   // When the turn changes, we need to reset all the actedInTurn property
+  // And if it's the AI turn, then we proceed to moving the AI
   React.useEffect(() => {
     setTeamB(
       teamB.map((el) => ({
@@ -36,6 +51,14 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
       }))
     );
     setTeamA(teamA.map((el) => ({ ...el, actedInTurn: false })));
+
+    if (game.whichSpeciesTurn === TeamEnum.B) {
+      const aiCharactersToAct = _.shuffle(teamB.map((el) => el));
+      setAiActions({
+        chainOfPositionsToClick: [],
+        aiCharactersToAct: aiCharactersToAct,
+      });
+    }
   }, [game.whichSpeciesTurn]);
 
   React.useEffect(() => {
@@ -50,7 +73,7 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
         actedInTurn: false,
       })),
     ]);
-    setTeamB([
+    const teamB = [
       ...props.teamB.map((teamBMember, i) => ({
         ...teamBMember,
         species: TeamEnum.B,
@@ -60,18 +83,84 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
         },
         actedInTurn: false,
       })),
-    ]);
+    ];
+    setTeamB(teamB);
   }, [props.teamA, props.teamB]);
 
+  React.useEffect(() => {
+    teamBForAi.current = teamB;
+  }, [teamB]);
+
+  // AI turn
+  React.useEffect(() => {
+    // Executing current ai character actions
+    if (aiActions.chainOfPositionsToClick.length > 0) {
+      const newChainOfPositionsToClick = [...aiActions.chainOfPositionsToClick];
+      let newAiCharactersToAct = [...aiActions.aiCharactersToAct];
+      const positionToClick = newChainOfPositionsToClick.shift() as IPosition;
+
+      handleClickGrid({ grid: positionToClick })();
+
+      setTimeout(() => {
+        if (newChainOfPositionsToClick.length === 0) {
+          newAiCharactersToAct.shift();
+        }
+
+        setAiActions({
+          aiCharactersToAct: newAiCharactersToAct,
+          chainOfPositionsToClick: newChainOfPositionsToClick,
+        });
+
+        // If we just finished all actions, then we change the turn to the player
+        if (
+          newAiCharactersToAct.length === 0 &&
+          newChainOfPositionsToClick.length === 0
+        ) {
+          dispatch(gameSlice.actions.setTurn(TeamEnum.A));
+          dispatch(gameSlice.actions.setClickedCharacter(undefined));
+        }
+      }, 500);
+    }
+
+    // Moving to the next ai character
+    if (
+      aiActions.chainOfPositionsToClick.length === 0 &&
+      aiActions.aiCharactersToAct.length > 0
+    ) {
+      const character = aiActions.aiCharactersToAct[0];
+
+      let chainOfPositionsToClick: IPosition[] = [];
+      const actions = getAiCharacterTurnActions(character, {
+        totalColumns: props.columns,
+        totalRows: props.rows,
+        teamA,
+        teamB: teamBForAi.current,
+      });
+      chainOfPositionsToClick.push(
+        character.position,
+        actions.newPosition,
+        actions.attackTarget || actions.newPosition
+      );
+
+      setAiActions({
+        aiCharactersToAct: aiActions.aiCharactersToAct,
+        chainOfPositionsToClick,
+      });
+    }
+  }, [aiActions, game.whichSpeciesTurn]);
+  //#endregion hooks
+
+  //#region event listeners
   const handleClickGrid =
-    ({
-      grid,
-      characterInPosition,
-    }: {
-      grid: IPosition;
-      characterInPosition: IGameCharacter | undefined;
-    }) =>
+    ({ grid }: { grid: IPosition }) =>
     () => {
+      const characterInPosition: IGameCharacter | undefined = teamA
+        .concat(teamB)
+        .find(
+          (el) =>
+            el.position?.column === grid.column && el.position.row === grid.row
+        );
+
       // if it's not a selected character turn, and we click on an empty grid, then we show an error message
       if (
         game.clickedCharacter &&
@@ -114,47 +203,7 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
               c.row === clickedEnemy.position.row
           )
         ) {
-          const damage =
-            Math.max(game.characterInAction.attack - clickedEnemy.defense, 0) +
-            1;
-
-          // Damage infliction message
-          dispatch(
-            gameSlice.actions.setMessage(
-              "Inflicted " + damage + " damage to " + clickedEnemy.name
-            )
-          );
-
-          const isDead: boolean = damage >= clickedEnemy.health;
-
-          // If the clicked enemy dies after the attack, we remove him from the list
-          if (isDead) {
-            (clickedEnemy?.species === TeamEnum.B ? setTeamB : setTeamA)(
-              (clickedEnemy?.species === TeamEnum.B ? teamB : teamA).filter(
-                (character) =>
-                  character.position.column !== clickedEnemy.position.column ||
-                  character.position.row !== clickedEnemy.position.row
-              )
-            );
-          } else {
-            // We inflict damage in case the enemy isn't dead yet.
-            (clickedEnemy?.species === TeamEnum.B ? setTeamB : setTeamA)(
-              (clickedEnemy?.species === TeamEnum.B ? teamB : teamA).map(
-                (character) => ({
-                  ...character,
-                  health:
-                    character.position.column ===
-                      clickedEnemy.position.column &&
-                    character.position.row === clickedEnemy.position.row
-                      ? character.health - damage
-                      : character.health,
-                })
-              )
-            );
-            // setTeamB(teamB.map((pok) => ({ ...pok, health: 1 })));
-          }
-
-          dispatch(gameSlice.actions.setCharacterInAction(undefined));
+          inflictDamage(clickedEnemy);
         }
       } else {
         dispatch(gameSlice.actions.setError(""));
@@ -178,16 +227,22 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
           game.clickedCharacter &&
           !game.clickedCharacter.actedInTurn &&
           game.clickedCharacter.species === game.whichSpeciesTurn &&
-          casesAllowedToMoveTo.find(
-            (el) => el.row === grid.row && el.column === grid.column
-          )
+          getCasesAllowedToMoveTo({
+            character: game.clickedCharacter,
+            totalColumns: props.columns,
+            totalRows: props.rows,
+            teamA,
+            teamB,
+          }).find((el) => el.row === grid.row && el.column === grid.column)
         ) {
           let newTeamA: IGameCharacter[] = [...teamA];
           let newTeamB: IGameCharacter[] = [...teamB];
           // Move the character here
           if (game.whichSpeciesTurn === TeamEnum.B) {
             newTeamB = teamB.map((character) =>
-              character === game.clickedCharacter
+              character.position.column ===
+                game.clickedCharacter?.position.column &&
+              character.position.row === game.clickedCharacter.position.row
                 ? {
                     ...character,
                     position: { row: grid.row, column: grid.column },
@@ -205,19 +260,6 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
                     actedInTurn: true,
                   }
                 : character
-            );
-          }
-
-          // If all team members already acted in the current turn, then we switch the turn
-          if (
-            !(game.whichSpeciesTurn === TeamEnum.A ? newTeamA : newTeamB).find(
-              (el) => !el.actedInTurn
-            )
-          ) {
-            dispatch(
-              gameSlice.actions.setTurn(
-                game.whichSpeciesTurn === TeamEnum.B ? TeamEnum.A : TeamEnum.B
-              )
             );
           }
 
@@ -241,32 +283,61 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
       }
     };
 
-  const casesAllowedToMoveTo: IPosition[] = React.useMemo(() => {
-    const cases: IPosition[] = [];
-    if (game.clickedCharacter) {
-      const possiblePaths: IPosition[][] = getPossiblePaths({
-        blockedGrids: (game.clickedCharacter.species === TeamEnum.A
-          ? teamB
-          : teamA
-        ).map((enemy) => enemy.position),
-        range: game.clickedCharacter.movement,
-        source: game.clickedCharacter.position,
-        totalColumns: props.columns,
-        totalRows: props.rows,
-      });
-      possiblePaths.forEach((path) => {
-        path.forEach((block) => {
-          if (
-            !cases.find(
-              (el) => el.column === block.column && el.row === block.row
-            )
-          ) {
-            cases.push(block);
-          }
-        });
-      });
+  const inflictDamage = (clickedEnemy: IGameCharacter) => {
+    if (!game.characterInAction) {
+      return;
     }
-    return cases;
+    const damage =
+      Math.max(game.characterInAction.attack - clickedEnemy.defense, 0) + 1;
+
+    // Damage infliction message
+    dispatch(
+      gameSlice.actions.setMessage(
+        "Inflicted " + damage + " damage to " + clickedEnemy.name
+      )
+    );
+
+    const isDead: boolean = damage >= clickedEnemy.health;
+
+    // If the clicked enemy dies after the attack, we remove him from the list
+    if (isDead) {
+      (clickedEnemy?.species === TeamEnum.B ? setTeamB : setTeamA)(
+        (clickedEnemy?.species === TeamEnum.B ? teamB : teamA).filter(
+          (character) =>
+            character.position.column !== clickedEnemy.position.column ||
+            character.position.row !== clickedEnemy.position.row
+        )
+      );
+    } else {
+      // We inflict damage in case the enemy isn't dead yet.
+      (clickedEnemy?.species === TeamEnum.B ? setTeamB : setTeamA)(
+        (clickedEnemy?.species === TeamEnum.B ? teamB : teamA).map(
+          (character) => ({
+            ...character,
+            health:
+              character.position.column === clickedEnemy.position.column &&
+              character.position.row === clickedEnemy.position.row
+                ? character.health - damage
+                : character.health,
+          })
+        )
+      );
+    }
+
+    dispatch(gameSlice.actions.setCharacterInAction(undefined));
+  };
+
+  //#endregion event listeners
+
+  //#region UI
+  const casesAllowedToMoveTo: IPosition[] = React.useMemo(() => {
+    return getCasesAllowedToMoveTo({
+      character: game.clickedCharacter,
+      totalColumns: props.columns,
+      totalRows: props.rows,
+      teamA,
+      teamB,
+    });
   }, [game.clickedCharacter, props.columns, props.rows]);
 
   const actingCases: IPosition[] = React.useMemo(() => {
@@ -305,12 +376,15 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
                 );
               }
             }}
-            onClick={handleClickGrid({
-              grid: { row, column },
-              characterInPosition,
-            })}
+            onClick={
+              game.whichSpeciesTurn === TeamEnum.B
+                ? doNothing
+                : handleClickGrid({
+                    grid: { row, column },
+                  })
+            }
             className={
-              // The case is highlited when we have a clicked character, and we can we can move or act upon it.
+              // The case is highlighted when we have a clicked character, and we can move or act upon it.
               (game.clickedCharacter === characterInPosition &&
                 game.clickedCharacter) ||
               (casesAllowedToMoveTo.find(
@@ -335,6 +409,7 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
       })}
     </div>
   );
+  //#endregion UI
 };
 
 export default Board;
