@@ -130,7 +130,6 @@ const Board: React.FunctionComponent<IBoard> = (props: IBoard) => {
       const character = aiActions.aiCharactersToAct[0];
 
       let chainOfPositionsToClick: IPosition[] = [];
-      console.log("teamBForAi.current", teamBForAi.current);
       const actions = getAiCharacterTurnActions(character, {
         totalColumns: props.columns,
         totalRows: props.rows,
