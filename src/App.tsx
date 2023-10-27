@@ -215,7 +215,7 @@ const App = () => {
         <GameInfo />
         <Board rows={10} columns={6} teamA={teamA} teamB={teamB} />
         <GameMessage />
-        {/* <AudioPlayer autoPlay src="/music.mp3" loop /> */}
+        <AudioPlayer autoPlay src="/music.mp3" loop />
         {/* <audio loop src="/music.mp3" autoPlay /> */}
       </div>
     </Provider>
